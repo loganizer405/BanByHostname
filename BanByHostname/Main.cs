@@ -18,6 +18,7 @@ namespace BanByHostname
     {
         string path = Path.Combine(TShock.SavePath, "BanByHostname.json");
         Config Config = new Config();
+        bool hostbans = true;
         public override string Name
         {
             get
@@ -72,23 +73,34 @@ namespace BanByHostname
                 Config.Write(path);
             }
             Config = Config.Read(path);
+
+            if (Config.BannedHostnames == null) { hostbans = false; }
+        
             Commands.ChatCommands.Add(new Command("banhost.use", Hostname, "hostname"));
         }
         private void OnJoin(JoinEventArgs e)
         {
-            string ip = TShock.Players[e.Who].IP;
-            string plrhost = GetHost(ip);
-            Config.Read(path);
-            foreach (BannedHost host in Config.BannedHostnames)
+            if (hostbans) // if there are bans...
             {
-                if (host.hostname.Contains(plrhost))
+                string ip = TShock.Players[e.Who].IP;
+                string plrhost = GetHost(ip);
+                Config.Read(path);
+                foreach (BannedHost host in Config.BannedHostnames)
                 {
-                    TShock.Players[e.Who].Disconnect("You are banned: " + host.reason + ".");
+                    if (host.hostname.Contains(plrhost))
+                    {
+                        TShock.Players[e.Who].Disconnect("You are banned: " + host.reason + ".");
+                    }
                 }
             }
         }
         void Hostname(CommandArgs e)
         {
+            if (string.IsNullOrEmpty(e.Parameters[0]) || e.Parameters.Count == 0)
+            {
+                e.Player.SendInfoMessage("No subcommand entered. Proper parameters: ban, banhost, check, unban, viewlist.");
+                return;
+            }
             switch (e.Parameters[0].ToLower())
             {
                 case "ban":
@@ -104,13 +116,14 @@ namespace BanByHostname
                             TShock.Utils.SendMultipleMatchError(e.Player, players.Select(p => p.Name));
                             return;
                         }
-                        else if (players.Count == 1)
+                        var plr = players[0];
+                        string host = GetHost(plr.IP);
+                        string reason;
+                        if(e.Parameters.Count < 3)
                         {
-                            var plr = players[0];
-                            string host = GetHost(plr.IP);
-                            
-                            string reason;
-                            if (string.IsNullOrEmpty(e.Parameters[2]))
+                            reason = "Misbehavior";
+                        }
+                            else if (string.IsNullOrEmpty(e.Parameters[2]))
                             {
                                 reason = "Misbehavior";
                             }
@@ -118,19 +131,22 @@ namespace BanByHostname
                             {
                                 reason = e.Parameters[2];
                             }
-                            BannedHost ban = new BannedHost(host, reason);
-                            Config.BannedHostnames.Add(ban);
-                            Config.Write(path);
-                            e.Player.SendInfoMessage("Banned " + plr.Name + "'s hostname: \"" + host + "\".");                       
-                            e.Player.SendInfoMessage("Reason: " + reason);
-                            TShock.Utils.Kick(plr, "You have been banned: " + reason);
-                            return;
-                        }
+                        BannedHost ban = new BannedHost(host, reason);
+                        Config.BannedHostnames.Add(ban);
+                        Config.Write(path);
+                        e.Player.SendInfoMessage("Banned " + plr.Name + "'s hostname: \"" + host + "\".");
+                        e.Player.SendInfoMessage("Reason: " + reason);
+                        //TShock.Utils.Kick(plr, "You have been banned: " + reason); //doesn't work?
+                        hostbans = true;
                         break;
                     }
                 case "banhost":
                     {
                         string reason;
+                        if(e.Parameters.Count < 3)
+                        {
+                            reason = "Misbehavior";
+                        }
                         if (string.IsNullOrEmpty(e.Parameters[2]))
                         {
                             reason = "Misbehavior";
@@ -143,6 +159,7 @@ namespace BanByHostname
                         Config.BannedHostnames.Add(ban);
                         Config.Write(path);
                         e.Player.SendInfoMessage("Successfully banned hostname \"" + e.Parameters[1] + "\" for " + reason + ".");
+                        hostbans = true;
                         break;
                     }
                 case "check":
@@ -183,19 +200,23 @@ namespace BanByHostname
                             }
                         }
                         e.Player.SendInfoMessage("No bans exist for the hostname \"" + host + "\".");
+
+                        if (Config.BannedHostnames == null) { hostbans = false; }
                         break;
                     }
                 case "viewlist":
                 case "checklist":
                     {
-                        Config.Read(path);
-                        if (Config.BannedHostnames.Count == 0)
+                        
+                        if (!hostbans)
                         {
                             e.Player.SendInfoMessage("No hostnames have been banned.");
                             return;
                         }
+                        
                         else
                         {
+                            Config.Read(path);
                             StringBuilder builder = new StringBuilder();
                             foreach (BannedHost host in Config.BannedHostnames)
                             {
@@ -209,9 +230,9 @@ namespace BanByHostname
                 case null:
                 default:
                     {
-                        e.Player.SendInfoMessage("Invalid  or no command entered. Proper parameters: ban, banhost, check, unban, viewlist.");
+                        e.Player.SendInfoMessage("Invalid subcommand entered. Proper parameters: ban, banhost, check, unban, viewlist.");
+                        break;
                     }
-                    break;
             }
         }
         string GetHost(string ip)
