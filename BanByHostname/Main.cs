@@ -16,7 +16,7 @@ namespace BanByHostname
     [ApiVersion(1, 16)]
     public class BanByHostname : TerrariaPlugin
     {
-        string path = Path.Combine(TShock.SavePath, "BanByHostname.json");
+        string path = Path.Combine(TShock.SavePath, "BannedHostnames.json");
         Config Config = new Config();
         bool hostbans = true;
         public override string Name
@@ -74,26 +74,23 @@ namespace BanByHostname
             }
             Config = Config.Read(path);
 
-            if (Config.BannedHostnames == null) { hostbans = false; }
+            if (Config.BannedHostnames.Count == 0) { hostbans = false; }
         
             Commands.ChatCommands.Add(new Command("banhost.use", Hostname, "hostname"));
         }
         private void OnJoin(JoinEventArgs e)
         {
-            if (hostbans) // if there are bans...
-            {
                 string ip = TShock.Players[e.Who].IP;
                 string plrhost = GetHost(ip);
                 Config.Read(path);
                 foreach (BannedHost host in Config.BannedHostnames)
                 {
-                    if (host.hostname.Contains(plrhost))
+                    if (plrhost.Contains(host.hostname))
                     {
                         TShock.Players[e.Who].Disconnect("You are banned: " + host.reason + ".");
                     }
                 }
             }
-        }
         void Hostname(CommandArgs e)
         {
             if (string.IsNullOrEmpty(e.Parameters[0]) || e.Parameters.Count == 0)
@@ -105,6 +102,11 @@ namespace BanByHostname
             {
                 case "ban":
                     {
+                        if(!e.Player.Group.HasPermission("banhost.ban") && !e.Player.Group.HasPermission("banhost.*"))
+                        {
+                            e.Player.SendErrorMessage("You do not have permission to execute this command!");
+                            return;
+                        }
                         List<TSPlayer> players = TShock.Utils.FindPlayer(e.Parameters[1]);
                         if (players.Count == 0)
                         {
@@ -142,8 +144,13 @@ namespace BanByHostname
                     }
                 case "banhost":
                     {
+                        if (!e.Player.Group.HasPermission("banhost.ban") && !e.Player.Group.HasPermission("banhost.*"))
+                        {
+                            e.Player.SendErrorMessage("You do not have permission to execute this command!");
+                            return;
+                        }
                         string reason;
-                        if(e.Parameters.Count < 3)
+                        if(e.Parameters.Count == 3)
                         {
                             reason = "Misbehavior";
                         }
@@ -165,6 +172,11 @@ namespace BanByHostname
                 case "check":
                 case "view":
                     {
+                        if (!e.Player.Group.HasPermission("banhost.view") && !e.Player.Group.HasPermission("banhost.*"))
+                        {
+                            e.Player.SendErrorMessage("You do not have permission to execute this command!");
+                            return;
+                        }
                         List<TSPlayer> players = TShock.Utils.FindPlayer(e.Parameters[1]);
                         if (players.Count == 0)
                         {
@@ -187,6 +199,11 @@ namespace BanByHostname
                 case "unban":
                 case "delete":
                     {
+                        if (!e.Player.Group.HasPermission("banhost.remove") && !e.Player.Group.HasPermission("banhost.*"))
+                        {
+                            e.Player.SendErrorMessage("You do not have permission to execute this command!");
+                            return;
+                        }
                         Config.Read(path);
                         string host = e.Parameters[1];
                         foreach (BannedHost ban in Config.BannedHostnames)
@@ -207,7 +224,11 @@ namespace BanByHostname
                 case "viewlist":
                 case "checklist":
                     {
-                        
+                        if (!e.Player.Group.HasPermission("banhost.ban") && !e.Player.Group.HasPermission("banhost.*"))
+                        {
+                            e.Player.SendErrorMessage("You do not have permission to execute this command!");
+                            return;
+                        }
                         if (!hostbans)
                         {
                             e.Player.SendInfoMessage("No hostnames have been banned.");
