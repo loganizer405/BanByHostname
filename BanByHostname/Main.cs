@@ -75,22 +75,22 @@ namespace BanByHostname
             Config = Config.Read(path);
 
             if (Config.BannedHostnames.Count == 0) { hostbans = false; }
-        
+
             Commands.ChatCommands.Add(new Command("banhost.use", Hostname, "hostname"));
         }
         private void OnJoin(JoinEventArgs e)
         {
-                string ip = TShock.Players[e.Who].IP;
-                string plrhost = GetHost(ip);
-                Config.Read(path);
-                foreach (BannedHost host in Config.BannedHostnames)
+            string ip = TShock.Players[e.Who].IP;
+            string plrhost = GetHost(ip);
+            Config.Read(path);
+            foreach (BannedHost host in Config.BannedHostnames)
+            {
+                if (plrhost.Contains(host.hostname))
                 {
-                    if (plrhost.Contains(host.hostname))
-                    {
-                        TShock.Players[e.Who].Disconnect("You are banned: " + host.reason + ".");
-                    }
+                    TShock.Players[e.Who].Disconnect("You are banned: " + host.reason + ".");
                 }
             }
+        }
         void Hostname(CommandArgs e)
         {
             if (string.IsNullOrEmpty(e.Parameters[0]) || e.Parameters.Count == 0)
@@ -102,7 +102,7 @@ namespace BanByHostname
             {
                 case "ban":
                     {
-                        if(!e.Player.Group.HasPermission("banhost.ban") && !e.Player.Group.HasPermission("banhost.*"))
+                        if (!e.Player.Group.HasPermission("banhost.ban") && !e.Player.Group.HasPermission("banhost.*"))
                         {
                             e.Player.SendErrorMessage("You do not have permission to execute this command!");
                             return;
@@ -121,18 +121,18 @@ namespace BanByHostname
                         var plr = players[0];
                         string host = GetHost(plr.IP);
                         string reason;
-                        if(e.Parameters.Count < 3)
+                        if (e.Parameters.Count == 2)
                         {
                             reason = "Misbehavior";
                         }
-                            else if (string.IsNullOrEmpty(e.Parameters[2]))
-                            {
-                                reason = "Misbehavior";
-                            }
-                            else
-                            {
-                                reason = e.Parameters[2];
-                            }
+                        else if (string.IsNullOrEmpty(e.Parameters[2]))
+                        {
+                            reason = "Misbehavior";
+                        }
+                        else
+                        {
+                            reason = e.Parameters[2];
+                        }
                         BannedHost ban = new BannedHost(host, reason);
                         Config.BannedHostnames.Add(ban);
                         Config.Write(path);
@@ -150,7 +150,7 @@ namespace BanByHostname
                             return;
                         }
                         string reason;
-                        if(e.Parameters.Count == 3)
+                        if (e.Parameters.Count == 3)
                         {
                             reason = "Misbehavior";
                         }
@@ -208,7 +208,7 @@ namespace BanByHostname
                         string host = e.Parameters[1];
                         foreach (BannedHost ban in Config.BannedHostnames)
                         {
-                            if(ban.hostname == host)
+                            if (ban.hostname == host)
                             {
                                 Config.BannedHostnames.Remove(ban);
                                 Config.Write(path);
@@ -234,7 +234,7 @@ namespace BanByHostname
                             e.Player.SendInfoMessage("No hostnames have been banned.");
                             return;
                         }
-                        
+
                         else
                         {
                             Config.Read(path);
