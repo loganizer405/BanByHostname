@@ -13,7 +13,7 @@ using System.Net;
 
 namespace BanByHostname
 {
-    [ApiVersion(1, 16)]
+    [ApiVersion(1, 17)]
     public class BanByHostname : TerrariaPlugin
     {
         string path = Path.Combine(TShock.SavePath, "BannedHostnames.json");
@@ -44,7 +44,7 @@ namespace BanByHostname
         {
             get
             {
-                return new Version("1.0");
+                return new Version("1.1");
             }
         }
         public BanByHostname(Main game)
