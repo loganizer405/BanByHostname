@@ -81,7 +81,12 @@ namespace BanByHostname
         private void OnJoin(JoinEventArgs e)
         {
             string ip = TShock.Players[e.Who].IP;
-            string plrhost = GetHost(ip);
+            string plrhost;
+            if (!GetHost(ip, out plrhost)) 
+            {
+                Log.ConsoleError("Could not find hostname for " + TShock.Players[e.Who].Name + ".");
+                Log.Warn("Could not find hostname for " + TShock.Players[e.Who].Name + ".");
+            }
             Config.Read(path);
             foreach (BannedHost host in Config.BannedHostnames)
             {
@@ -119,7 +124,13 @@ namespace BanByHostname
                             return;
                         }
                         var plr = players[0];
-                        string host = GetHost(plr.IP);
+                        string host;
+                        if (!GetHost(plr.IP, out host))
+                        {
+                            Log.ConsoleError("Could not find hostname for " + plr.Name + ".");
+                            Log.Warn("Could not find hostname for " + plr.Name + ".");
+                            return;
+                        }                        
                         string reason;
                         if (e.Parameters.Count == 2)
                         {
@@ -191,7 +202,15 @@ namespace BanByHostname
                         else if (players.Count == 1)
                         {
                             var plr = players[0];
-                            e.Player.SendInfoMessage(plr.Name + "'s hostname is \"" + GetHost(plr.IP) + "\".");
+                            string host;
+                            if (!GetHost(plr.IP, out host))
+                            {
+                                Log.ConsoleError("Could not find hostname for " + plr.Name + ".");
+                                Log.Warn("Could not find hostname for " + plr.Name + ".");
+                                e.Player.SendInfoMessage("Could not find hostname for " + plr.Name);
+                                return;
+                            }  
+                            e.Player.SendInfoMessage(plr.Name + "'s hostname is \"" + host + "\".");
                             return;
                         }
                         break;
@@ -256,11 +275,21 @@ namespace BanByHostname
                     }
             }
         }
-        string GetHost(string ip)
+        bool GetHost(string ip, out string hostname)
         {
-            System.Net.IPHostEntry host;
-            host = System.Net.Dns.GetHostEntry(ip);
-            return host.HostName;
+            try
+            {
+                System.Net.IPHostEntry host;
+                host = System.Net.Dns.GetHostEntry(ip);
+                hostname = host.HostName;
+                if (string.IsNullOrEmpty(hostname)) { return false; }
+                return true;
+            }
+            catch
+            {
+                hostname = null;
+                return false;
+            }
         }
     }
 }
