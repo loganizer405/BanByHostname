@@ -78,17 +78,20 @@ namespace BanByHostname
 
             Commands.ChatCommands.Add(new Command("banhost.use", Hostname, "hostname"));
         }
-        private void OnJoin(JoinEventArgs e)
+        private async void OnJoin(JoinEventArgs e)
         {
             string ip = TShock.Players[e.Who].IP;
             string plrhost;
-            if (!GetHost(ip, out plrhost)) 
+            plrhost = await GetHost(ip);
+            if (string.IsNullOrEmpty(plrhost))
             {
                 Log.ConsoleError("Could not find hostname for " + TShock.Players[e.Who].Name + ".");
                 Log.Warn("Could not find hostname for " + TShock.Players[e.Who].Name + ".");
+                return;
             }
             Config.Read(path);
-            foreach (BannedHost host in Config.BannedHostnames)
+            List<BannedHost> bannedhosts = Config.BannedHostnames;
+            foreach (BannedHost host in bannedhosts)
             {
                 if (plrhost.Contains(host.hostname))
                 {
@@ -96,7 +99,7 @@ namespace BanByHostname
                 }
             }
         }
-        void Hostname(CommandArgs e)
+        async void Hostname(CommandArgs e)
         {
             if (string.IsNullOrEmpty(e.Parameters[0]) || e.Parameters.Count == 0)
             {
@@ -125,7 +128,8 @@ namespace BanByHostname
                         }
                         var plr = players[0];
                         string host;
-                        if (!GetHost(plr.IP, out host))
+                        host = await GetHost(plr.IP);
+                        if (string.IsNullOrEmpty(host))
                         {
                             Log.ConsoleError("Could not find hostname for " + plr.Name + ".");
                             Log.Warn("Could not find hostname for " + plr.Name + ".");
@@ -203,7 +207,8 @@ namespace BanByHostname
                         {
                             var plr = players[0];
                             string host;
-                            if (!GetHost(plr.IP, out host))
+                            host = await GetHost(plr.IP);
+                            if (string.IsNullOrEmpty(host))
                             {
                                 Log.ConsoleError("Could not find hostname for " + plr.Name + ".");
                                 Log.Warn("Could not find hostname for " + plr.Name + ".");
@@ -224,8 +229,9 @@ namespace BanByHostname
                             return;
                         }
                         Config.Read(path);
+                        List<BannedHost> bannedhosts = Config.BannedHostnames;
                         string host = e.Parameters[1];
-                        foreach (BannedHost ban in Config.BannedHostnames)
+                        foreach (BannedHost ban in bannedhosts)
                         {
                             if (ban.hostname == host)
                             {
@@ -257,8 +263,9 @@ namespace BanByHostname
                         else
                         {
                             Config.Read(path);
+                            List<BannedHost> bannedhosts = Config.BannedHostnames;
                             StringBuilder builder = new StringBuilder();
-                            foreach (BannedHost host in Config.BannedHostnames)
+                            foreach (BannedHost host in bannedhosts)
                             {
                                 builder.Append(host.hostname).Append(", ");
                             }
@@ -275,21 +282,23 @@ namespace BanByHostname
                     }
             }
         }
-        bool GetHost(string ip, out string hostname)
+        async Task<string> GetHost(string ip)
         {
-            try
+            return await Task.Run(() =>
             {
-                System.Net.IPHostEntry host;
-                host = System.Net.Dns.GetHostEntry(ip);
-                hostname = host.HostName;
-                if (string.IsNullOrEmpty(hostname)) { return false; }
-                return true;
-            }
-            catch
-            {
-                hostname = null;
-                return false;
-            }
+                try
+                {
+                    System.Net.IPHostEntry host;
+                    host = System.Net.Dns.GetHostEntry(ip);
+
+                    if (string.IsNullOrEmpty(host.HostName)) { return null; }
+                    return host.HostName;
+                }
+                catch
+                {
+                    return null;
+                }
+            });
         }
     }
 }
