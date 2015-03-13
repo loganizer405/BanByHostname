@@ -76,7 +76,7 @@ namespace BanByHostname
 
             if (Config.BannedHostnames.Count == 0) { hostbans = false; }
 
-            Commands.ChatCommands.Add(new Command("banhost.use", Hostname, "hostname"));
+            Commands.ChatCommands.Add(new Command(new List<string>() { "banhost.use", "banhost.*" }, Hostname, "hostname"));
         }
         private async void OnJoin(JoinEventArgs e)
         {
