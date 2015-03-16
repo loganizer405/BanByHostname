@@ -44,7 +44,7 @@ namespace BanByHostname
         {
             get
             {
-                return new Version("1.1");
+                return new Version("1.2.1");
             }
         }
         public BanByHostname(Main game)
@@ -101,7 +101,7 @@ namespace BanByHostname
         }
         async void Hostname(CommandArgs e)
         {
-            if (string.IsNullOrEmpty(e.Parameters[0]) || e.Parameters.Count == 0)
+            if (e.Parameters.Count == 0 || string.IsNullOrEmpty(e.Parameters[0]))
             {
                 e.Player.SendInfoMessage("No subcommand entered. Proper parameters: ban, banhost, check, unban, viewlist.");
                 return;
